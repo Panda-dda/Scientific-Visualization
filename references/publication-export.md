@@ -69,3 +69,9 @@ def dense_scatter(ax, x, y):
 **原始出处**：
 
 - [rst/optimization.rst](https://github.com/rougier/scientific-visualization-book/blob/62fa569f30333c817c13e4dc757877c1192fd15a/rst/optimization.rst#L177-L221)，L177–L221。
+
+## 用户选择 TEX / PGF
+
+使用 `--formats tex` 生成独立 TEX 包装文件、PGF 绘图及必需的栅格 PNG；`--formats pgf` 不生成包装文件。需要 XeLaTeX 与 TikZ/PGF，包装文件编译需要 standalone 包。保持配套文件在同一目录，在该目录使用 XeLaTeX 编译。默认使用 LaTeX 字体；含中文时需另行配置和验证字体。缺依赖或生成失败应报告，不静默改成其他格式。PGF 是绘图命令，不等于 PGFPlots 数据源。
+
+新增实现依据：[Matplotlib PGF 官方文档](https://matplotlib.org/stable/users/explain/text/pgf.html)。

@@ -6,7 +6,7 @@
 
 用自然语言描述绘图任务，让 Agent 根据数据含义选择图型、生成可复现的 Python/Matplotlib 代码、调整布局与样式，并检查实际导出的图件。
 
-适用于科研折线图、散点图、多面板布局、三维网格投影，以及 PDF / SVG / PNG 导出。目前已在 **Codex** 中验证技能发现和安装后运行。
+适用于科研折线图、散点图、多面板布局、三维网格投影，以及 PDF / SVG / PNG / PGF / TEX 导出。目前已在 **Codex** 中验证技能发现和安装后运行。
 
 [快速开始](#快速开始) · [使用示例](#使用示例) · [直接运行代码](#直接运行代码) · [验证范围](#验证范围) · [来源与许可](#来源与许可)
 
@@ -28,7 +28,7 @@
 - **修改现有绘图**：调整字体、配色、线型、图例、标注与面板间距。
 - **组织多面板**：处理共享轴、边际分布、面板比例和对齐。
 - **绘制三维几何**：使用正交投影、三角网格和面深度排序展示空间结构。
-- **导出论文图件**：按物理尺寸输出 PDF、SVG 和 PNG，按需仅栅格化密集数据层。
+- **导出论文图件**：按物理尺寸输出 PDF、SVG、PNG、PGF 和 TEX，按需仅栅格化密集数据层。
 - **检查生成结果**：区分语法、执行和目视检查状态，记录环境、输入来源与导出结果。
 
 技能使用渐进披露：入口保留工作流和路由，具体任务只加载相关参考。当前包含 **11 份参考文档、25 条知识记录、4 个可运行示例**。
@@ -89,9 +89,26 @@ python -m venv .venv
 python -m pip install numpy matplotlib
 ```
 
-这里安装的是当前可用版本；本项目实际验证过的版本见下方“验证范围”。运行核心示例不需要原教程仓库、联网、外部字体或 LaTeX。
+这里安装的是当前可用版本；本项目实际验证过的版本见下方“验证范围”。PDF/SVG/PNG 导出不需要原教程仓库、联网、外部字体或 LaTeX。
 
 ## 使用示例
+
+输出格式由你指定，例如 `--formats tex` 或 `--formats pdf png`。支持 PDF/SVG/PNG/PGF/TEX（不区分大小写）；省略参数时默认 PDF/SVG/PNG。TEX 生成可独立编译的 `.tex` 包装文件及必需的 `.pgf`，栅格图层还会生成配套 PNG。TEX/PGF 需要 XeLaTeX 和 TikZ/PGF；编译包装文件还需 standalone 包。保持配套文件在同一目录，在该目录执行 `xelatex figure.tex`。这是 PGF 绘图命令，不是 PGFPlots 数据源码；不会自动附加未请求的 PDF 预览。
+
+### 选择 TEX 输出
+
+```text
+$scientific-visualization
+用我的数据绘图，只输出 TEX，并提供必需的配套文件。
+```
+
+```bash
+python examples/line_scatter.py --demo --formats tex --output-dir outputs/tex
+cd outputs/tex
+xelatex -interaction=nonstopmode -halt-on-error line_scatter.tex
+```
+
+导出步骤生成 `line_scatter.tex`、`line_scatter.pgf` 和 `run.json`；单独执行编译命令后才会生成 PDF 和 LaTeX 辅助文件。
 
 ### 改进已有图件
 
@@ -159,7 +176,7 @@ python examples/line_scatter.py --input data.csv --x-column t --y-column value -
 | `--input` / `--demo` | 选择文件输入或合成演示，两者互斥 |
 | `--synthetic-input` | 将外部合成数据文件明确标为演示数据 |
 | `--output-dir` | 指定独立输出目录 |
-| `--formats pdf svg png` | 选择导出格式 |
+| `--formats tex` | 从 `pdf svg png pgf tex` 中选择一种或多种；默认 `pdf svg png` |
 | `--width-mm` / `--height-mm` | 指定物理画布尺寸 |
 | `--dpi` | 设置 PNG 和矢量文件内栅格层的分辨率 |
 | `--font-size` / `--line-width` | 覆盖默认样式 |
@@ -199,6 +216,7 @@ Scientific-Visualization/
 | 行为检查 | 44 项检查通过，涵盖输入校验、尺度边界、投影、覆盖保护等 |
 | 运行独立性 | 四个示例从隔离副本、其他工作目录运行 |
 | 图件检查 | 6 份 PDF 经 Poppler 渲染与目视检查，核对物理尺寸和字体嵌入 |
+| TEX / PGF | 折线图和栅格散点配套文件已导出，并用 XeLaTeX（TeX Live 2025）编译通过；尚未目视检查 |
 | 其他格式 | PNG 像素尺寸检查；SVG 的 XML、文字及混合图层结构检查 |
 
 完整口径见 [验证说明](docs/validation.md)。这些结果对应上述环境，不代表所有平台、依赖版本或图型均已验证。
@@ -208,7 +226,7 @@ Scientific-Visualization/
 - 三维面排序采用画家算法，不保证任意相交或透明面的遮挡正确。
 - 共识与编队示例的合成数据仅用于绘图验证，不能作为真实实验或控制器性能证据。
 - 特征根稳定性、统计推断及误差定义需要任务本身提供依据。
-- 中文字体回退、LaTeX、Lab 配色分支和 MP4 编码尚未完成专项验收。
+- 中文字体回退、自定义 LaTeX 字体与导言区、Lab 配色分支和 MP4 编码尚未完成专项验收。
 - 自动选用技能保留默认启用，但尚未完成独立端到端自动选择验证。
 - 样式默认值可调整；目标期刊的尺寸、字体和格式要求应优先明确。
 

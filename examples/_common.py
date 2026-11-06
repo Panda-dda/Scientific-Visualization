@@ -7,6 +7,8 @@ import csv
 import hashlib
 import json
 import platform
+import shutil
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -30,7 +32,7 @@ def parser(description: str) -> argparse.ArgumentParser:
     p.add_argument("--synthetic-input", action="store_true", help="mark an external synthetic test dataset")
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--output-dir", type=Path, required=True)
-    p.add_argument("--formats", nargs="+", choices=["pdf", "svg", "png"], default=["pdf", "svg", "png"])
+    p.add_argument("--formats", nargs="+", type=str.lower, choices=["pdf", "svg", "png", "pgf", "tex"], default=["pdf", "svg", "png"])
     p.add_argument("--width-mm", type=positive, default=120)
     p.add_argument("--height-mm", type=positive, default=85)
     p.add_argument("--dpi", type=positive, default=180)
@@ -109,6 +111,10 @@ def export(fig: Figure, args: argparse.Namespace, stem: str,
     dest = args.output_dir.resolve()
     dest.mkdir(parents=True, exist_ok=True)
     formats = list(dict.fromkeys(args.formats))
+    if "tex" in formats or "pgf" in formats:
+        if not shutil.which("xelatex"):
+            raise RuntimeError("TEX/PGF export requires XeLaTeX and TikZ/PGF on PATH")
+        formats = ["pgf"] + [ext for ext in formats if ext != "pgf"]
     targets = [dest/f"{stem}.{ext}" for ext in formats]
     log = dest/"run.json"
     if not args.overwrite:
@@ -130,6 +136,36 @@ def export(fig: Figure, args: argparse.Namespace, stem: str,
     try:
         for target in targets:
             try:
+                if target.suffix == ".pgf":
+                    # A real filename is required for raster sidecars. Stage the
+                    # entire bundle before checking every destination for conflicts.
+                    with tempfile.TemporaryDirectory() as staging:
+                        staged = Path(staging)/target.name
+                        with mpl.rc_context({"pgf.texsystem": "xelatex", "pgf.rcfonts": False,
+                                             "pgf.preamble": ""}):
+                            fig.savefig(staged, format="pgf", dpi=args.dpi, facecolor="white")
+                        bundle = sorted(Path(staging).iterdir())
+                        for source in bundle:
+                            output = dest/source.name
+                            if args.input and output == args.input.resolve():
+                                raise ValueError("output would overwrite input")
+                            if output.exists() and not args.overwrite:
+                                raise FileExistsError(f"output exists: {output}")
+                        for source in bundle:
+                            with (dest/source.name).open("wb" if args.overwrite else "xb") as stream:
+                                stream.write(source.read_bytes())
+                            meta["successful_files"].append(source.name)
+                    continue
+                if target.suffix == ".tex":
+                    if f"{stem}.pgf" not in meta["successful_files"]:
+                        raise RuntimeError("required PGF export failed")
+                    document = ("\\documentclass{standalone}\n\\usepackage{pgf}\n"
+                                "\\usepackage{fontspec}\n\\begin{document}\n"
+                                f"\\input{{{stem}.pgf}}\n\\end{{document}}\n")
+                    with target.open("w" if args.overwrite else "x", encoding="utf-8") as stream:
+                        stream.write(document)
+                    meta["successful_files"].append(target.name)
+                    continue
                 # Exclusive create prevents an unintentional overwrite after preflight.
                 with target.open("wb" if args.overwrite else "xb") as stream:
                     fig.savefig(stream, format=target.suffix[1:], dpi=args.dpi, facecolor="white")
