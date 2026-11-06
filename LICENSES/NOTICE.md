@@ -9,3 +9,9 @@ References and book-derived prose are CC BY-NC-SA 4.0. Individual source declara
 Executable examples adapt BSD source-code mechanisms and add original validation/CLI plumbing; their source notices point to BSD-2-Clause.txt. The style draws on book guidance and is distributed under CC BY-NC-SA 4.0.
 Short reference snippets retain the source-specific conditions recorded in SOURCE_MAP, including Creative Commons exceptions for typography and coordinate annotations.
 No source fonts, book PDF, bunny mesh or pre-rendered figures are redistributed.
+
+Original project documentation and configuration are separately licensed under MIT:
+README.md, README.zh-CN.md, docs/validation.md, LICENSE.md, and .gitignore.
+See ../LICENSE.md for the exact scope and MIT.txt for the permission notice.
+Embedded previews are excluded from that MIT grant; docs/images/ is CC BY-NC-SA 4.0.
+This addition does not replace upstream attribution or change the licensing of examples or references.
